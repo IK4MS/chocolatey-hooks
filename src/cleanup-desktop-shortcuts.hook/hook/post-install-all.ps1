@@ -1,4 +1,7 @@
-﻿if (-not $packageScript) {
+#I don't even know if I need to specify it again
+$quicklaunch = Join-Path ([environment]::GetFolderPath("ApplicationData")) 'Microsoft\Internet Explorer\Quick Launch'
+
+if (-not $packageScript) {
     #Warning was provided in pre-install script
     return
 }
@@ -8,7 +11,7 @@ if ([string]::IsNullOrEmpty([Environment]::GetFolderPath("DesktopDirectory"))) {
     return
 }
 
-$global:CleanupDesktopShortcutsHook.PostShortcuts = @(Get-Childitem -Path ([environment]::GetFolderPath("DesktopDirectory")) -Filter "*.lnk")
+$global:CleanupDesktopShortcutsHook.PostShortcuts = @(Get-Childitem -Path $quicklaunch,([environment]::GetFolderPath("DesktopDirectory")) -Filter "*.lnk" -Recurse -Force)
 
 if (Test-ProcessAdminRights) {
     if ([string]::IsNullOrEmpty([Environment]::GetFolderPath("CommonDesktopDirectory"))) {
@@ -30,4 +33,9 @@ foreach ($postshortcut in $CleanupDesktopShortcutsHook.PostShortcuts) {
     }
     Write-Host "Removing '$($postshortcut.fullname)'"
     Remove-Item -Path $postshortcut.fullname
+    #I mean I could find out how to do this after every package is finished however I'm incredibly lazy
+    Write-Host "Restarting taskbar"
+    Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\" -Name "FavoritesRemovedChanges"
+    taskkill /f /im explorer.exe
+    start explorer.exe
 }
